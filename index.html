@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flying Jellyfish</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+    font-family: Arial, sans-serif;
+  }
+  #bubbleContainer {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 560px;
+    overflow: hidden;
+    background: transparent;
+  }
+  .bubble {
+    position: absolute;
+    display: block;
+    object-fit: contain;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-drag: none;
+    border: 0;
+    background: transparent;
+    will-change: left, top, transform, opacity;
+    transition: opacity .45s ease;
+    z-index: 1;
+  }
+  .bubble:hover { filter: brightness(1.08); }
+  .bubble.gone {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #questionBox {
+    position: absolute;
+    z-index: 50;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(600px, 86%);
+    padding: 22px 24px;
+    display: none;
+    text-align: center;
+    background: #fff;
+    border: 3px solid #3498db;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,0,0,.2);
+    color: #222;
+    font-size: clamp(19px, 3vw, 25px);
+    font-weight: bold;
+  }
+  #questionText { margin: 0; }
+  #closeBtn {
+    margin-top: 16px;
+    padding: 9px 20px;
+    border: none;
+    background: #3498db;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  #closeBtn:hover { background: #217dbb; }
+</style>
+</head>
+<body>
+<div id="bubbleContainer">
+  <div id="questionBox">
+    <p id="questionText">Question will appear here</p>
+    <button id="closeBtn" type="button">Close</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const container = document.getElementById('bubbleContainer');
+  const questionBox = document.getElementById('questionBox');
+  const questionText = document.getElementById('questionText');
+  const closeBtn = document.getElementById('closeBtn');
+
+  const jellyfishImage = 'https://i.ibb.co/BV2vmX5G/56.png';
+
+  // Built-in visual fallback used only if the external image cannot load.
+  const fallbackSvg = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260">
+    <path d="M50 130 C15 130 30 185 55 177 C61 216 25 220 39 245
+             M85 145 C82 190 55 205 72 247
+             M120 145 C120 195 105 210 119 246
+             M155 140 C160 190 190 210 180 245"
+          fill="none" stroke="#e85b9b" stroke-width="15" stroke-linecap="round"/>
+    <path d="M35 126 C35 54 70 22 112 22 C157 22 190 57 190 121
+             C190 151 166 164 112 164 C60 164 35 151 35 126Z"
+          fill="#f5acd0" stroke="#e85b9b" stroke-width="9"/>
+    <ellipse cx="82" cy="81" rx="22" ry="29" fill="#e66ca8"/>
+    <ellipse cx="135" cy="89" rx="11" ry="15" fill="#e66ca8"/>
+    <path d="M160 60 Q178 78 177 105" fill="none" stroke="#ffe3f0"
+          stroke-width="9" stroke-linecap="round"/>
+    <path d="M72 27 L80 2 L133 2 L151 29 L133 22 L119 31 L104 21 L88 31Z"
+          fill="#d71920" stroke="#a90e16" stroke-width="3"/>
+    <path d="M78 24 Q110 37 146 24 L153 44 Q112 56 70 43Z"
+          fill="#fff" stroke="#dedede" stroke-width="4"/>
+    <circle cx="71" cy="43" r="10" fill="#fff" stroke="#ddd" stroke-width="3"/>
+  </svg>`;
+  const fallbackUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(fallbackSvg);
+
+  const questions = [
+    "How _____ apples are there in the basket?",
+    "How _____ milk do you want in your coffee?",
+    "How _____ chairs are in the classroom?",
+    "How _____ money do you have?",
+    "How _____ friends do you have at school?",
+    "How _____ sugar is in the tea?",
+    "How _____ oranges are in the fridge?",
+    "How _____ water do you drink every day?",
+    "How _____ books are on the shelf?",
+    "How _____ cheese is on the plate?",
+    "How _____ people are in your family?",
+    "How _____ homework do you have today?",
+    "How _____ bananas are left?",
+    "How _____ time do we have before the lesson?",
+    "How _____ eggs are in the fridge?"
+  ];
+
+  const total = 15;
+  let jellyfish = [];
+  let clickedCount = 0;
+
+  function createJellyfish() {
+    jellyfish.forEach(j => j.el.remove());
+    jellyfish = [];
+    clickedCount = 0;
+    questionBox.style.display = 'none';
+
+    const width = container.clientWidth || window.innerWidth;
+    const height = Math.max(container.clientHeight, 560);
+
+    for (let i = 0; i < total; i++) {
+      const img = document.createElement('img');
+      img.className = 'bubble';
+      img.src = jellyfishImage;
+      img.alt = 'Jellyfish';
+      img.draggable = false;
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = function () {
+        if (img.src !== fallbackUrl) img.src = fallbackUrl;
+      };
+
+      const size = 70 + Math.random() * 55;
+      const startX = Math.random() * Math.max(0, width - size);
+      const startY = Math.random() * Math.max(0, height - size);
+
+      img.style.width = size + 'px';
+      img.style.height = size + 'px';
+      img.style.left = startX + 'px';
+      img.style.top = startY + 'px';
+
+      const item = {
+        el: img,
+        x: startX,
+        y: startY,
+        t: Math.random() * 1000,
+        phase: Math.random() * Math.PI * 2,
+        speedX: 0.012 + Math.random() * 0.02,
+        speedY: 0.015 + Math.random() * 0.025,
+        ampX: 20 + Math.random() * 45,
+        ampY: 15 + Math.random() * 35,
+        angle: Math.random() * 360,
+        spin: 0.25 + Math.random() * 0.7
+      };
+
+      img.addEventListener('click', function () {
+        if (img.dataset.clicked) return;
+        img.dataset.clicked = 'true';
+        img.classList.add('gone');
+        clickedCount++;
+
+        if (clickedCount === total) {
+          questionText.textContent = 'Well done!';
+        } else {
+          questionText.textContent =
+            questions[Math.floor(Math.random() * questions.length)];
+        }
+        questionBox.style.display = 'block';
+      });
+
+      container.appendChild(img);
+      jellyfish.push(item);
+    }
+  }
+
+  function animate() {
+    const w = container.clientWidth || window.innerWidth;
+    const h = Math.max(container.clientHeight, 560);
+
+    jellyfish.forEach(function (j) {
+      if (!j.el.isConnected || j.el.dataset.clicked) return;
+      j.t += 1;
+      j.angle += j.spin;
+
+      let x = j.x + Math.sin(j.t * j.speedX + j.phase) * j.ampX;
+      let y = j.y + Math.sin(j.t * j.speedY + j.phase) * j.ampY;
+
+      x = Math.max(0, Math.min(w - j.el.offsetWidth, x));
+      y = Math.max(0, Math.min(h - j.el.offsetHeight, y));
+
+      j.el.style.left = x + 'px';
+      j.el.style.top = y + 'px';
+      j.el.style.transform = 'rotate(' + j.angle + 'deg)';
+    });
+
+    requestAnimationFrame(animate);
+  }
+
+  closeBtn.addEventListener('click', function () {
+    questionBox.style.display = 'none';
+  });
+
+  createJellyfish();
+  requestAnimationFrame(animate);
+
+  window.addEventListener('resize', function () {
+    // Keep the current jellyfish and their click state; animation adapts to new bounds.
+  });
+})();
+</script>
+</body>
+</html>
